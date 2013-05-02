@@ -57,6 +57,7 @@ class FixLinkedResources implements IFix {
 			]
 			
 			var cnt = doc.toXml
+			cnt = cnt.replaceAll('<\\?xml version="1\\.0" encoding="UTF-8"\\?><projectDescription>', '<?xml version="1.0" encoding="UTF-8"?>\n<projectDescription>')
 			cnt = cnt.replaceAll("<comment/>", "<comment></comment>")
 			cnt = cnt.replaceAll("(\\s+)<projects/>", "$1<projects>$1</projects>")
 			cnt = cnt.replaceAll("(\\s+)<arguments/>", "$1<arguments>$1</arguments>")

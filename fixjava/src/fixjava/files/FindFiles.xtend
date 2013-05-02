@@ -42,23 +42,18 @@ class FindFiles {
 		return list;
 	}
 	
-	def createProjectFile(File file, int depth) {
+	def createProjectFile(File projectFile, int depth) {
+		val projectFolder = projectFile.parentFile
 		val pf = new ProjectFolder()
-		pf.root = file.parentFile
+		pf.root = projectFolder
 		pf.depth = depth
 		
-		
-		/*
-		val doc = file.toDocument;
-		val nodes = doc.selectByXPathQuery("/projectDescription/natures/*")
-		pf.natureCount = nodes.size
-		* [text="org.eclipse.jdt.core.javanature"]
-		 */
-		val doc = file.toDocument;
+		//Read .project file:
+		val doc = projectFile.toDocument;
 		val natures = doc.selectByXPathQuery("/projectDescription/natures/nature");
 		pf.natureCount = natures.size
 		pf.javaNature = !natures.filter["org.eclipse.jdt.core.javanature" == it.textContent].empty
-		pf.mavenNature = !natures.filter["org.eclipse.m2e.core.prefs" == it.textContent].empty
+		pf.mavenNature = !natures.filter["org.eclipse.m2e.core.maven2Nature" == it.textContent].empty
 		
 		return pf
 	}

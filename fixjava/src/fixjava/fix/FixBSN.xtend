@@ -15,30 +15,39 @@ import java.nio.file.FileVisitResult
 import java.util.List
 import java.util.ArrayList
 import com.google.common.base.Charsets
+import fixjava.files.GroupFolder
 
 /**
  * Fix the bundle symbolic name (and if there is a change, for java project the main package)
  */
-class FixBSN implements IFix {
+class FixBSN extends AbstractFix {
 	
-	IConfig config
+	String oldNamePrefix
+	String newNamePrefix
+
+	override executeFix(GroupFolder gf) {
+		oldNamePrefix = gf.commonPrefix
+		newNamePrefix = config.getBSNNewNamePrefix(gf)
+			
+		super.executeFix(gf)
+		
+		gf.commonPrefix = newNamePrefix
+	}
 	
 	override executeFix(ProjectFolder pf) {
 		if(pf.depth == config.BSNExpectedDepth) {
 			val oldBSN = pf.root.name
-			val oldNamePrefix = oldBSN.substring(0, pf.commonPrefix.length-1) 
-			val newNamePrefix = config.getBSNNewNamePrefix(pf)
 			val newBSN = newNamePrefix + oldBSN.substring(oldNamePrefix.length)
 			
 //			println(oldBSN + " > "+ newBSN)
 //			println(oldNamePrefix + " > "+ newNamePrefix)
+//			println("---")
 			
 			if(newBSN != oldBSN) {
 				//Move the root folder
 				val newRoot = new File(pf.root.parentFile, newBSN)
 				pf.root.moveTo(newRoot)
 				pf.root = newRoot
-				pf.commonPrefix = newNamePrefix
 				
 				if(pf.javaNature) {
 					val oldRootSrcPackage = newRoot.createRootSrcPackage(oldBSN)
@@ -97,7 +106,7 @@ class FixBSN implements IFix {
 	}
 	
 	new (IConfig projectConfig) {
-		config = projectConfig
+		super(projectConfig)
 	}
 }
 

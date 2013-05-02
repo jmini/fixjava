@@ -3,6 +3,7 @@ package fixjava.config
 import fixjava.files.ProjectFolder
 import java.io.File
 import java.util.ArrayList
+import fixjava.files.GroupFolder
 
 /**
  * This is an example configuration to work on the scout example
@@ -34,8 +35,6 @@ class ExampleConfig implements IConfig {
 	
 	override getBSNExpectedDepth() { 2 }
 	
-	override getBSNNewNamePrefix(ProjectFolder pf) {
-		val parent = pf.root.parentFile.name
-		"org.eclipsescout.demo."+parent
-	}
+	override getBSNNewNamePrefix(GroupFolder gf) 
+		'''org.eclipsescout.demo.«gf.root.name»'''
 }

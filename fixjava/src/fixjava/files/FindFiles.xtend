@@ -6,22 +6,30 @@ import java.util.List
 
 import static extension fixjava.files.XmlExtensions.*
 import java.util.LinkedHashSet
+import com.google.common.collect.Lists
 
 class FindFiles {
-	def List<ProjectFolder> findProjects(File folder, int depth) {
-		val list = findProjectsRec(folder, depth)
+	def List<GroupFolder> findProjects(File folder, int depth) {
+		val allProjects = findProjectsRec(folder, depth)
 		
-		val folders = list.map[it.root.parentFile].removeDuplicate
-		folders.forEach[parentFolder |
-			val children = list.filter[it.root.absolutePath.startsWith(parentFolder.absolutePath)]
-			val commonPrefix = children.findCommonPrefix
-			children.forEach[it.commonPrefix = commonPrefix]
-		]
-		return list
+		val folders = allProjects.map[it.root.parentFile].removeDuplicate
+		val groups = folders.map[it.createGroupFolder(allProjects)]
+		
+		return groups
 	}
-	
-	def <T> removeDuplicate(List<T> list) {
-		return new ArrayList<T>(new LinkedHashSet<T>(list)); 
+
+	def createGroupFolder(File parentFolder, List<ProjectFolder> allProjects) {
+		val projects = allProjects.filter[it.root.absolutePath.startsWith(parentFolder.absolutePath)]
+		val commonPrefix = projects.findCommonPrefix.removeTrailingPoint
+		
+		val group = new GroupFolder
+		group.root = parentFolder
+		group.projects = Lists::newArrayList(projects)
+		group.commonPrefix = commonPrefix
+		
+		projects.forEach[it.group = group]
+		
+		return group
 	}
 	
 	def List<ProjectFolder> findProjectsRec(File folder, int depth) {
@@ -40,6 +48,10 @@ class FindFiles {
 			.forEach[list.addAll (findProjectsRec(depth+1))]
 		
 		return list;
+	}
+	
+	def <T> removeDuplicate(List<T> list) {
+		return new ArrayList<T>(new LinkedHashSet<T>(list)); 
 	}
 	
 	def createProjectFile(File projectFile, int depth) {
@@ -72,5 +84,13 @@ class FindFiles {
 		}
 		
 		return firstName;
+	}
+	
+	def removeTrailingPoint(String string) {
+		return if(string.endsWith(".")) {
+			string.substring(0, string.length -1)
+		} else {
+			string
+		}
 	}
 }

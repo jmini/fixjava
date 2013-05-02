@@ -9,9 +9,7 @@ import com.google.common.io.Files
 import com.google.common.base.Charsets
 import fixjava.config.IConfig
 
-class FixLinkedResources implements IFix {
-	
-	val IConfig config
+class FixLinkedResources extends AbstractFix {
 	
 	override executeFix(ProjectFolder pf) {
 		if(pf.javaNature) {
@@ -86,10 +84,9 @@ class FixLinkedResources implements IFix {
 		if(settingFile.exists) {
 			settingFile.delete
 		}
-		
 	}
 	
 	new (IConfig projectConfig) {
-		config = projectConfig
+		super(projectConfig)
 	}
 }

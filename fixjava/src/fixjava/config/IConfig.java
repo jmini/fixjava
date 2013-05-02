@@ -13,6 +13,7 @@ package fixjava.config;
 import java.io.File;
 import java.util.List;
 
+import fixjava.files.GroupFolder;
 import fixjava.files.ProjectFolder;
 
 /**
@@ -30,6 +31,6 @@ public interface IConfig {
 
   int getBSNExpectedDepth();
 
-  String getBSNNewNamePrefix(ProjectFolder project);
+  String getBSNNewNamePrefix(GroupFolder group);
 
 }

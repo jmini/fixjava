@@ -7,6 +7,8 @@ import java.util.List
 import static extension fixjava.files.XmlExtensions.*
 import java.util.LinkedHashSet
 import com.google.common.collect.Lists
+import com.google.common.io.Files
+import com.google.common.base.Charsets
 
 class FindFiles {
 	def List<GroupFolder> findProjects(File folder, int depth) {
@@ -66,6 +68,13 @@ class FindFiles {
 		pf.natureCount = natures.size
 		pf.javaNature = !natures.filter["org.eclipse.jdt.core.javanature" == it.textContent].empty
 		pf.mavenNature = !natures.filter["org.eclipse.m2e.core.maven2Nature" == it.textContent].empty
+		
+		//Read MANIFEST.MF file
+		val manifestFile = new File(new File(projectFolder, "META-INF"), "MANIFEST.MF")
+		if(manifestFile.exists) {
+			val manifestCnt = Files::toString(manifestFile, Charsets::UTF_8)
+			pf.useJUnit = manifestCnt.contains("org.junit")
+		}
 		
 		return pf
 	}

@@ -9,4 +9,5 @@ class ProjectFolder {
 	@Property int natureCount
 	@Property boolean javaNature
 	@Property boolean mavenNature
+	@Property boolean useJUnit
 }

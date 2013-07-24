@@ -72,15 +72,7 @@ class FixMaven extends AbstractFix {
 
 	<modules>
 		«FOR pf : gf.projects»
-		<module>../org.eclipsescout.demo.minifigcreator.client</module>
-		<module>../org.eclipsescout.demo.minifigcreator.server</module>
-		<module>../org.eclipsescout.demo.minifigcreator.shared</module>
-		<module>../org.eclipsescout.demo.minifigcreator.ui.swing</module>
-		<module>../org.eclipsescout.demo.minifigcreator.ui.swt</module>
-
-		<!-- <module>../org.eclipsescout.demo.minifigcreator.server.product</module> -->
-		<!-- <module>../org.eclipsescout.demo.minifigcreator.server.product.war</module> -->
-		<!-- <module>../org.eclipsescout.demo.minifigcreator.ui.swing.product</module> -->
+		<module>../«pf.root.name»</module>
 		«ENDFOR»
 	</modules>
 
@@ -91,9 +83,9 @@ class FixMaven extends AbstractFix {
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<modules>
-				<module>../org.eclipsescout.demo.minifigcreator.client.test</module>
-				<module>../org.eclipsescout.demo.minifigcreator.server.test</module>
-				<module>../org.eclipsescout.demo.minifigcreator.shared.test</module>
+				«FOR pf : gf.projects.filter[useJUnit]»
+				<module>../«pf.root.name»</module>
+				«ENDFOR»
 			</modules>
 		</profile>
 	</profiles>

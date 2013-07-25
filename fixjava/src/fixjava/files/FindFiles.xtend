@@ -71,19 +71,22 @@ class FindFiles {
 	}
 	
 	def String findCommonPrefix(Iterable<ProjectFolder> list) {
-		if(list.size == 0) {
-			return "";
+		if(list.empty) {
+			return ""
+		} else {
+			val names = list.map[root.name]
+			return names.reduce[n1, n2| commonPrefix(n1, n2)]
 		}
-		val names = list.map[root.name]
-		val firstName = names.findFirst[true]
-		
-		for(int p: 1..firstName.length) {
-			if(!names.forall[it.length >= p && it.substring(0, p) == firstName.substring(0, p)]) {
-				return firstName.substring(0, p-1)
-			}
+	}
+	
+	//NICE: this is included in Guava (version >11) as Strings::commonPrefix
+	def static String commonPrefix(String a, String b) {
+		val maxPrefixLength = Math::min(a.length, b.length)
+		var p = 0
+		while (p < maxPrefixLength && a.charAt(p) == b.charAt(p)) {
+			p = p + 1
 		}
-		
-		return firstName;
+		a.substring(0, p)
 	}
 	
 	def removeTrailingPoint(String string) {

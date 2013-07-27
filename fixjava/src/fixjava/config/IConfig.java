@@ -33,4 +33,8 @@ public interface IConfig {
 
   String getBSNNewNamePrefix(GroupFolder group);
 
+  public String getCopyright();
+
+  public String getGroupId();
+
 }

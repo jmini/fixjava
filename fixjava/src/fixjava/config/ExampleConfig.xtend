@@ -37,4 +37,10 @@ class ExampleConfig implements IConfig {
 	
 	override getBSNNewNamePrefix(GroupFolder gf) 
 		'''org.eclipsescout.demo.«gf.root.name»'''
+	
+	override getCopyright() {
+		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+	}
+	
+	override getGroupId() { "org.eclipsescout.demo" }
 }

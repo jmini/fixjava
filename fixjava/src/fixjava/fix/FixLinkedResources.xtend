@@ -14,7 +14,7 @@ class FixLinkedResources extends AbstractFix {
 	override executeFix(ProjectFolder pf) {
 		if(pf.javaNature) {
 			//List of settings files:
-			val fileNames = config.getLinkedResourcesFiles(pf)
+			val fileNames = config.linkedResourcesFiles.filter[pf.mavenNature || it != "org.eclipse.m2e.core.prefs" ]
 			
 			//Delete files in settings:
 			val settingsFolder = new File(pf.root, ".settings")

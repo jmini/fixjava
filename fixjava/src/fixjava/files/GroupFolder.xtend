@@ -9,5 +9,6 @@ import java.util.List
 class GroupFolder {
 		@Property File root
 		@Property String commonPrefix
+		@Property int depth
 		@Property List<ProjectFolder> projects
 }

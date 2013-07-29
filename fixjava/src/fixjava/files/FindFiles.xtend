@@ -14,28 +14,34 @@ class FindFiles {
 	def List<GroupFolder> findProjects(File folder, int depth) {
 		val allProjects = findProjectsRec(folder, depth)
 		
-		val folders = allProjects.map[it.root.parentFile].removeDuplicate
+		val folders = allProjects.map[it.pf.root.parentFile].removeDuplicate
 		val groups = folders.map[it.createGroupFolder(allProjects)]
 		
 		return groups
 	}
 
-	def createGroupFolder(File parentFolder, List<ProjectFolder> allProjects) {
-		val projects = allProjects.filter[it.root.absolutePath.startsWith(parentFolder.absolutePath)]
-		val commonPrefix = projects.findCommonPrefix.removeTrailingPoint
+	def createGroupFolder(File parentFolder, List<P_ProjectFolder> allProjects) {
+		val projects = allProjects.filter[it.pf.root.absolutePath.startsWith(parentFolder.absolutePath)]
+		val commonPrefix = projects.map[it.pf].findCommonPrefix.removeTrailingPoint
 		
 		val group = new GroupFolder
 		group.root = parentFolder
-		group.projects = Lists::newArrayList(projects)
+		group.projects = Lists::newArrayList(projects.map[it.pf])
 		group.commonPrefix = commonPrefix
 		
-		projects.forEach[it.group = group]
+		val min = projects.map[it.depth].reduce[i1, i2| Math::min(i1, i2)]
+		val max = projects.map[it.depth].reduce[i1, i2| Math::max(i1, i2)]
+		if(min != max) {
+			throw new IllegalStateException("min <"+min+"> and max <"+max+"> are expected to be the same")
+		}
+		group.depth = min
 		
+		group.projects.forEach[it.group = group]
 		return group
 	}
 	
-	def List<ProjectFolder> findProjectsRec(File folder, int depth) {
-		val list = new ArrayList<ProjectFolder>()
+	def List<P_ProjectFolder> findProjectsRec(File folder, int depth) {
+		val list = new ArrayList<P_ProjectFolder>()
 		
 		//Find the setting file:
 		list.addAll (
@@ -56,11 +62,10 @@ class FindFiles {
 		return new ArrayList<T>(new LinkedHashSet<T>(list)); 
 	}
 	
-	def createProjectFile(File projectFile, int depth) {
+	def P_ProjectFolder createProjectFile(File projectFile, int depth) {
 		val projectFolder = projectFile.parentFile
 		val pf = new ProjectFolder()
 		pf.root = projectFolder
-		pf.depth = depth
 		
 		//Read .project file:
 		val doc = projectFile.toDocument;
@@ -76,7 +81,10 @@ class FindFiles {
 			pf.useJUnit = manifestCnt.contains("org.junit")
 		}
 		
-		return pf
+		new P_ProjectFolder => [
+			it.pf = pf
+			it.depth = depth
+		]
 	}
 	
 	def String findCommonPrefix(Iterable<ProjectFolder> list) {
@@ -105,4 +113,9 @@ class FindFiles {
 			string
 		}
 	}
+}
+
+class P_ProjectFolder {
+	@Property ProjectFolder pf
+	@Property int depth
 }

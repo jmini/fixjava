@@ -1,15 +1,15 @@
 package fixjava.create
 
-import static extension fixjava.maven.MavenPom.*
+import static extension fixjava.maven.MavenPomWritter.*
 
 import java.io.File
 import fixjava.files.ProjectFolder
-import fixjava.maven.MavenProductProject
 import fixjava.maven.MavenParent
 import fixjava.config.IConfig
 import com.google.common.base.Charsets
 import com.google.common.io.Files
 import java.util.regex.Pattern
+import fixjava.maven.MavenProductPom
 
 class CreateProductProject {
 	
@@ -22,7 +22,7 @@ class CreateProductProject {
 			val productFileCnt = Files::toString(productFile, Charsets::UTF_8)
 			
 			//Read
-			val uid = productFileCnt.read('<product.*uid="([a-z\\.]+)"')
+			val uid = productFileCnt.read('<product.*uid="([a-z0-9\\.]+)"')
 			val launcher = productFileCnt.read('<launcher.*name="([a-z\\. ]+)"')
 			val configIni = productFileCnt.read('<configIni[^>]*>(.+)</configIni>').trim
 			
@@ -37,11 +37,11 @@ class CreateProductProject {
 			Files::copy(oldConfigIni, newConfigIni)
 			
 			//Create the maven pom
-			val mavenProject = new MavenProductProject => [
+			val mavenProject = new MavenProductPom => [
 				copyright = config.copyright
 				
 				parent = new MavenParent => [
-					groupId = config.getGroupId()
+					groupId = config.getParentGroupId()
 					artifactId = pf.group.commonPrefix
 					version = "3.9.1-SNAPSHOT"
 				]

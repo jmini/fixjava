@@ -11,7 +11,7 @@
 package fixjava.config;
 
 import java.io.File;
-import java.util.List;
+import java.util.Collection;
 
 import fixjava.files.GroupFolder;
 import fixjava.files.ProjectFolder;
@@ -25,7 +25,7 @@ public interface IConfig {
 
   int getInitialDepth();
 
-  List<String> getLinkedResourcesFiles(ProjectFolder project);
+  Collection<String> getLinkedResourcesFiles();
 
   String getLinkedResourcesLinkLocationURI(String fileName, ProjectFolder project);
 
@@ -33,8 +33,14 @@ public interface IConfig {
 
   String getBSNNewNamePrefix(GroupFolder group);
 
-  public String getCopyright();
+  String getCopyright();
 
-  public String getGroupId();
+  File getAboutFile();
+
+  String getParentGroupId();
+
+  String getParentArtifactId();
+
+  String getParentRelativePath();
 
 }

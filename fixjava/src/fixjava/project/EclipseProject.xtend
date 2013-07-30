@@ -9,8 +9,9 @@ class EclipseProject {
 	@Property List<String> natures
 	@Property List<Link> linkedResources
 }
-class Link {
-	@Property String name
-	@Property String type
-	@Property String locationURI
+
+@Data class Link {
+	String name
+	String type
+	String locationURI
 }

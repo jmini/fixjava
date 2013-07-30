@@ -1,4 +1,4 @@
-package fixjava.files
+package xtend
 
 import java.io.File
 import java.io.FileInputStream

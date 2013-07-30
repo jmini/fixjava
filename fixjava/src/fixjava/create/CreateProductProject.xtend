@@ -26,9 +26,9 @@ class CreateProductProject {
 			val launcher = productFileCnt.read('<launcher.*name="([a-z\\. ]+)"')
 			val configIni = productFileCnt.read('<configIni[^>]*>(.+)</configIni>').trim
 			
-			val newProjectFile = new File(pf.root, productFile.name)
+			val newProductFile = new File(pf.root, productFile.name)
 			val newProductFileCnt = productFileCnt.replace(configIni, pf.newConfigIniTags)
-			Files::write(newProductFileCnt, newProjectFile, Charsets::UTF_8)
+			Files::write(newProductFileCnt, newProductFile, Charsets::UTF_8)
 			
 			//Copy configuration file to the projectFolder
 			//TODO: for the moment there is no check that the config.ini file is called config.ini. It is possible to parse the value of configIni
@@ -37,7 +37,7 @@ class CreateProductProject {
 			Files::copy(oldConfigIni, newConfigIni)
 			
 			//Create the maven pom
-			val mavenProject = new MavenProductPom => [
+			val mavenPom = new MavenProductPom => [
 				copyright = config.copyright
 				
 				parent = new MavenParent => [
@@ -55,7 +55,7 @@ class CreateProductProject {
 			]
 			
 			val newMavenFile = new File(pf.root, "pom.xml")
-			mavenProject.toFile(newMavenFile)
+			mavenPom.toFile(newMavenFile)
 			
 			//Create Assembly file:
 			val newAssemblyFile = new File(pf.root, "assembly.xml")

@@ -4,7 +4,7 @@ import fixjava.files.ProjectFolder
 import java.io.File
 import java.util.ArrayList
 
-import static extension fixjava.files.XmlExtensions.*
+import static extension xtend.XmlExtensions.*
 import com.google.common.io.Files
 import com.google.common.base.Charsets
 import fixjava.config.IConfig

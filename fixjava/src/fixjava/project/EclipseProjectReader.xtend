@@ -1,6 +1,6 @@
 package fixjava.project
 
-import static extension fixjava.files.XmlExtensions.*
+import static extension xtend.XmlExtensions.*
 import org.w3c.dom.Document
 import java.io.File
 
@@ -21,11 +21,11 @@ class EclipseProjectReader {
 			buildCommands = doc.selectByXPathQuery("/projectDescription/buildSpec/buildCommand/name").map[textContent]
 			natures = doc.selectByXPathQuery("/projectDescription/natures/nature").map[textContent]
 			linkedResources = doc.selectByXPathQuery("/projectDescription/linkedResources/link").map[node |
-				new Link => [
-					name = node.childNode("name").textContent
-					type = node.childNode("type").textContent
-					locationURI = node.childNode("locationURI").textContent
-				]
+				new Link(
+					node.childNode("name").textContent,
+					node.childNode("type").textContent,
+					node.childNode("locationURI").textContent
+				)
 			]
 		]
 	}

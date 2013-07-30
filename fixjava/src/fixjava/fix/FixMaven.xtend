@@ -1,5 +1,10 @@
 package fixjava.fix
 
+import static extension fixjava.maven.MavenPomWritter.*
+import static extension fixjava.project.EclipseProjectWritter.*
+import static extension fixjava.project.EclipseProjectReader.*
+import static extension xtend.RegExExtensions.*
+
 import fixjava.config.IConfig
 import fixjava.files.ProjectFolder
 import java.io.File
@@ -7,26 +12,124 @@ import fixjava.files.GroupFolder
 import fixjava.maven.MavenParent
 import fixjava.project.EclipseProject
 import fixjava.project.Link
-import static extension fixjava.maven.MavenPomWritter.*
-import static extension fixjava.project.EclipseProjectWritter.*
-import static extension fixjava.project.EclipseProjectReader.*
 import fixjava.maven.MavenPom
 import fixjava.maven.MavenParentPom
 import com.google.common.io.Files
 import java.util.ArrayList
 import java.util.List
+import fixjava.maven.MavenProductPom
+import com.google.common.base.Charsets
 
 class FixMaven extends AbstractFix {
 	
 	override executeFix(GroupFolder groupFolder) {
 		super.executeFix(groupFolder)
 		
-		//Create maven parent project:
-		if(!groupFolder.projects.exists[pf | pf.root.name == groupFolder.parentPomName]) {
+		//Create client product project:
+		groupFolder.createUiProductProject("ui.swing")
+		groupFolder.createUiProductProject("ui.swt")
+		
+		//Create or fix maven parent project:
+		val mavenPF = groupFolder.projects.findFirst[pf | pf.root.name == groupFolder.parentPomName]
+		if(mavenPF == null) {
 			groupFolder.createParentProject
+		} else {
+			val parentPom = mavenPF.createParentPom
+			mavenPF.writePom(parentPom)
 		}
 	}
 
+	def createUiProductProject(GroupFolder groupFolder, String uiProjectSuffix) {
+		val uiProjectFolder = groupFolder.projects.findFirst[pf | pf.root.name.endsWith(uiProjectSuffix)]
+		if(uiProjectFolder != null) {
+			val productFolder = new File(new File(uiProjectFolder.root, "products"), "production")
+			if(productFolder.exists && productFolder.directory) {
+				val productFile= productFolder.listFiles.findFirst[file | file.name.endsWith(".product")]
+				if(productFile != null) {
+					//Create project:
+					val project = new ProjectFolder => [
+						group = groupFolder
+						root = new File(groupFolder.root, uiProjectFolder.root.name + ".product")
+						natureCount = 1
+						javaNature = false
+						mavenNature = true
+						useJUnit = false
+					]
+					groupFolder.projects.add(project)
+					project.writeProject
+					
+					//Read current product file:
+					val productFileCnt = Files::toString(productFile, Charsets::UTF_8)
+					val existingUid = productFileCnt.readRegEx('<product.*uid="([a-z0-9\\.]+)"')
+					val uid = existingUid ?: project.root.name
+					val launcher = productFileCnt.readRegEx('<launcher.*name="([a-z\\. ]+)"')
+					
+					//Create Pom
+					val mavenPom = project.initMavenProject(new MavenProductPom)
+					mavenPom.properties = #{
+						"product.id" -> uid,
+						"product.outputDirectory" -> "${project.build.directory}/products/${product.id}/win32/win32/x86",
+						"product.finalName" -> launcher
+					}
+					project.writePom(mavenPom)
+					
+					//TODO: for the moment there is no check that the config.ini file is called config.ini. It is possible to parse the value of configIni					
+					
+					//Product File:
+					val newProductFile = new File(project.root, productFile.name)
+					var newProductFileCnt = productFileCnt
+					//--fix <product..uid attribute
+					if(existingUid == null) {
+						val productAttr = productFileCnt.readRegEx('(<product[^>]*) id="')
+						newProductFileCnt = newProductFileCnt.replace(productAttr, productAttr + ' uid="' + uid + '"')
+					}
+					
+					//--fix <configIni>..</configIni> content
+					val configIni = productFileCnt.readRegEx('<configIni[^>]*>(.+)</configIni>').trim
+					newProductFileCnt = newProductFileCnt.replace(configIni, project.newConfigIniTags)
+					Files::write(newProductFileCnt, newProductFile, Charsets::UTF_8)
+					productFile.delete
+					
+					//config.ini File:
+					val oldConfigIni = new File(productFile.parentFile, "config.ini")
+					val newConfigIni = new File(project.root, "config.ini")
+					Files::move(oldConfigIni, newConfigIni)
+					
+					//Create Assembly file:
+					val newAssemblyFile = new File(project.root, "assembly.xml")
+					Files::write(project.newAssemblyCnt, newAssemblyFile, Charsets::UTF_8)
+				}
+			}
+		}
+	}
+
+	def newConfigIniTags(ProjectFolder pf) '''
+		<linux>/«pf.root.name»/config.ini</linux>
+		      <macosx>/«pf.root.name»/config.ini</macosx>
+		      <win32>/«pf.root.name»/config.ini</win32>'''
+		 
+	def newAssemblyCnt(ProjectFolder pf) '''
+		<assembly>
+		  <id>«pf.root.name».zip</id>
+		  <formats>
+		    <format>zip</format>
+		  </formats>
+		  <includeBaseDirectory>false</includeBaseDirectory>
+		  <fileSets>
+		    <!-- exported product files -->
+		    <fileSet>
+		      <directory>${product.outputDirectory}</directory>
+		      <outputDirectory>/${product.finalName}</outputDirectory>
+		      <excludes>
+		        <exclude>p2/**</exclude>
+		        <exclude>eclipsec.exe</exclude>
+		        <exclude>artifacts.xml</exclude>
+		      </excludes>
+		    </fileSet>
+		  </fileSets>
+		</assembly>
+	'''
+	
 	def createParentProject(GroupFolder groupFolder) {
 			val project = new ProjectFolder => [
 					group = groupFolder
@@ -37,8 +140,16 @@ class FixMaven extends AbstractFix {
 					useJUnit = false
 			]
 			groupFolder.projects.add(project)
+			project.writeProject
 			
-			val parentMavenPom = new MavenParentPom => [
+			val parentMavenPom = project.createParentPom
+			project.writePom(parentMavenPom)
+	}
+
+	def createParentPom(ProjectFolder parentProject) {
+		val groupFolder = parentProject.group
+		
+		new MavenParentPom => [
 				copyright = config.copyright
 				
 				parent = new MavenParent => [
@@ -50,12 +161,29 @@ class FixMaven extends AbstractFix {
 				
 				groupId = groupFolder.commonPrefix
 				artifactId = groupFolder.parentPomName
-				modules = groupFolder.projects.filter[pf | pf != project && pf.mavenNature].map[pf | "../" + pf.root.name].toList
+				modules = groupFolder.projects.filter[pf | pf != parentProject && pf.mavenNature].map[pf | "../" + pf.root.name].toList
 			]
-			createProject(project, parentMavenPom)
 	}
 
-	def createProject(ProjectFolder project, MavenParentPom mavenPom) {
+	def toEclipseProject(ProjectFolder pf) {
+		new EclipseProject => [
+			name = pf.root.name
+			buildCommands = #["org.eclipse.m2e.core.maven2Builder"]
+			natures = #["org.eclipse.m2e.core.maven2Nature"]
+			linkedResources = #["org.eclipse.core.resources.prefs", "org.eclipse.m2e.core.prefs"]
+				.filter[config.linkedResourcesFiles.contains(it)]
+				.map[ fileName |
+						new Link(
+							".settings/" + fileName,
+							"1",
+							config.getLinkedResourcesLinkLocationURI(fileName, pf)
+						)
+				].toList
+			]
+	}
+	
+	
+	def writeProject(ProjectFolder project) {
 			val folder = project.root
 			
 			//Create Project Folder
@@ -72,26 +200,11 @@ class FixMaven extends AbstractFix {
 			if(aboutFile != null && aboutFile.exists) {
 				Files::copy(aboutFile, new File(folder, "about.html"))
 			}
-			
-			//Create POM File:
-			mavenPom.toFile(new File(folder, "pom.xml"))
 	}
-
-	def toEclipseProject(ProjectFolder pf) {
-		new EclipseProject => [
-			name = pf.root.name
-			buildCommands = #["org.eclipse.m2e.core.maven2Builder"]
-			natures = #["org.eclipse.m2e.core.maven2Nature"]
-			linkedResources = #["org.eclipse.core.resources.prefs", "org.eclipse.m2e.core.prefs"]
-				.filter[config.linkedResourcesFiles.contains(it)]
-				.map[ fileName |
-						new Link =>[
-							name = ".settings/" + fileName
-							type = "1"
-							locationURI = config.getLinkedResourcesLinkLocationURI(fileName, pf)
-						]
-				].toList
-			]
+	
+	def writePom(ProjectFolder project, MavenPom mavenPom) {
+		//Create POM File:
+		mavenPom.toFile(new File(project.root, "pom.xml"))
 	}
 	
 	override executeFix(ProjectFolder pf) {
@@ -100,7 +213,7 @@ class FixMaven extends AbstractFix {
 			pf.mavenNature = true;
 			
 			//Create maven file:
-			val mavenProject = pf.initMavenProject()
+			val mavenProject = pf.initMavenProject(new MavenPom)
 			mavenProject.packaging = pf.computePackaging
 			
 			mavenProject.toFile(new File(pf.root, "pom.xml"));
@@ -114,11 +227,11 @@ class FixMaven extends AbstractFix {
 			
 			val prefFileName = "org.eclipse.m2e.core.prefs"
 			if(config.linkedResourcesFiles.contains(prefFileName)) {
-				eclipseProject.linkedResources = eclipseProject.linkedResources.ensureContains(new Link => [
-					name = ".settings/" + prefFileName
-					type = "1"
-					locationURI = config.getLinkedResourcesLinkLocationURI(prefFileName, pf)
-				])
+				eclipseProject.linkedResources = eclipseProject.linkedResources.ensureContains(new Link(
+					".settings/" + prefFileName,
+					"1",
+					config.getLinkedResourcesLinkLocationURI(prefFileName, pf)
+				))
 			}
 			eclipseProject.toFile(projectFile)
 		}
@@ -136,8 +249,8 @@ class FixMaven extends AbstractFix {
 		}
 	}
 
-	def initMavenProject(ProjectFolder pf) {
-		new MavenPom => [
+	def initMavenProject(ProjectFolder pf, MavenPom mavenPom) {
+		mavenPom => [
 			copyright = config.copyright
 			
 			parent = new MavenParent => [

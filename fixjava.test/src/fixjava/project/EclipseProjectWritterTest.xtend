@@ -36,16 +36,16 @@ class EclipseProjectWritterTest {
 			buildCommands = #["org.eclipse.m2e.core.maven2Builder"]
 			natures = #["org.eclipse.m2e.core.maven2Nature"]
 			linkedResources = #[
-				new Link => [
-					name = ".settings/org.eclipse.core.resources.prefs" 
-					type = "1"
-					locationURI = "PARENT-2-PROJECT_LOC/com.bsiag.tools.rt-feature/.settings/org.eclipse.core.resources.prefs"
-				],
-				new Link => [
-					name = ".settings/org.eclipse.m2e.core.prefs" 
-					type = "1"
-					locationURI = "PARENT-2-PROJECT_LOC/com.bsiag.tools.rt-feature/.settings/org.eclipse.m2e.core.prefs"
-				]
+				new Link(
+					".settings/org.eclipse.core.resources.prefs",
+					"1",
+					"PARENT-2-PROJECT_LOC/com.bsiag.tools.rt-feature/.settings/org.eclipse.core.resources.prefs"
+				),
+				new Link(
+					".settings/org.eclipse.m2e.core.prefs",
+					"1",
+					"PARENT-2-PROJECT_LOC/com.bsiag.tools.rt-feature/.settings/org.eclipse.m2e.core.prefs"
+				)
 			]
 		]
 		val expected = '''

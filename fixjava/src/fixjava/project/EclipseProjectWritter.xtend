@@ -45,7 +45,7 @@ class EclipseProjectWritter {
 			«FOR link : p.linkedResources»
 			<link>
 				<name>«link.name»</name>
-				<type>1</type>
+				<type>«link.type»</type>
 				<locationURI>«link.locationURI»</locationURI>
 			</link>
 			«ENDFOR»

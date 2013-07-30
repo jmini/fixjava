@@ -11,5 +11,6 @@ class EclipseProject {
 }
 class Link {
 	@Property String name
+	@Property String type
 	@Property String locationURI
 }

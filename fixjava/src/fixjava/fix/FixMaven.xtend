@@ -19,15 +19,20 @@ import java.util.ArrayList
 import java.util.List
 import fixjava.maven.MavenProductPom
 import com.google.common.base.Charsets
+import java.util.HashMap
+import java.util.Map
 
 class FixMaven extends AbstractFix {
+	val SERVER_ADDITIONAL_PROPERTIES = #{"product.web-inf.templateDirectory" -> config.webInfTemplateDirectoy}
 	
 	override executeFix(GroupFolder groupFolder) {
 		super.executeFix(groupFolder)
 		
 		//Create client product project:
-		groupFolder.createUiProductProject("ui.swing")
-		groupFolder.createUiProductProject("ui.swt")
+		groupFolder.createClientUiProductProject("ui.swing")
+		groupFolder.createClientUiProductProject("ui.swt")
+		groupFolder.createServerProductProject
+		groupFolder.createServerUiProductProject("ui.rap")
 		
 		//Create or fix maven parent project:
 		val mavenPF = groupFolder.projects.findFirst[pf | pf.root.name == groupFolder.parentPomName]
@@ -39,17 +44,38 @@ class FixMaven extends AbstractFix {
 		}
 	}
 
-	def createUiProductProject(GroupFolder groupFolder, String uiProjectSuffix) {
-		val uiProjectFolder = groupFolder.projects.findFirst[pf | pf.root.name.endsWith(uiProjectSuffix)]
-		if(uiProjectFolder != null) {
-			val productFolder = new File(new File(uiProjectFolder.root, "products"), "production")
+	/**
+	 * For server project
+	 */
+	def createServerProductProject(GroupFolder groupFolder) {
+		createProductProject(groupFolder, "server", SERVER_ADDITIONAL_PROPERTIES, false, "_server")
+	}
+	
+	/**
+	 * For rap product project
+	 */
+	def createServerUiProductProject(GroupFolder groupFolder, String uiProjectSuffix) {
+		createProductProject(groupFolder, uiProjectSuffix, SERVER_ADDITIONAL_PROPERTIES, false, "")
+	}
+	
+	/**
+	 * For swt, swing product project
+	 */
+	def createClientUiProductProject(GroupFolder groupFolder, String uiProjectSuffix) {
+		createProductProject(groupFolder, uiProjectSuffix, new HashMap<String, String>, true, "")
+	}
+	
+	def createProductProject(GroupFolder groupFolder, String projectSuffix, Map<String,String> additionalProperties, boolean client, String finalNameSuffix) {
+		val targetPF = groupFolder.projects.findFirst[pf | pf.root.name.endsWith(projectSuffix)]
+		if(targetPF != null) {
+			val productFolder = new File(new File(targetPF.root, "products"), "production")
 			if(productFolder.exists && productFolder.directory) {
 				val productFile= productFolder.listFiles.findFirst[file | file.name.endsWith(".product")]
 				if(productFile != null) {
 					//Create project:
 					val project = new ProjectFolder => [
 						group = groupFolder
-						root = new File(groupFolder.root, uiProjectFolder.root.name + ".product")
+						root = new File(groupFolder.root, targetPF.root.name + ".product")
 						natureCount = 1
 						javaNature = false
 						mavenNature = true
@@ -62,15 +88,17 @@ class FixMaven extends AbstractFix {
 					val productFileCnt = Files::toString(productFile, Charsets::UTF_8)
 					val existingUid = productFileCnt.readRegEx('<product.*uid="([a-z0-9\\.]+)"')
 					val uid = existingUid ?: project.root.name
-					val launcher = productFileCnt.readRegEx('<launcher.*name="([a-z\\. ]+)"')
 					
 					//Create Pom
 					val mavenPom = project.initMavenProject(new MavenProductPom)
-					mavenPom.properties = #{
+					mavenPom.properties = new HashMap<String,String>
+					mavenPom.properties.putAll(#{
 						"product.id" -> uid,
 						"product.outputDirectory" -> "${project.build.directory}/products/${product.id}/win32/win32/x86",
-						"product.finalName" -> launcher
-					}
+						"product.finalName" -> groupFolder.alias + finalNameSuffix
+					})
+					mavenPom.properties.putAll(additionalProperties)
+
 					project.writePom(mavenPom)
 					
 					//TODO: for the moment there is no check that the config.ini file is called config.ini. It is possible to parse the value of configIni					
@@ -97,10 +125,15 @@ class FixMaven extends AbstractFix {
 					
 					//Create Assembly file:
 					val newAssemblyFile = new File(project.root, "assembly.xml")
-					Files::write(project.newAssemblyCnt, newAssemblyFile, Charsets::UTF_8)
+					val newAssemblyCnt = if(client) { project.newClientAssemblyCnt } else { project.newServerAssemblyCnt }
+					Files::write(newAssemblyCnt, newAssemblyFile, Charsets::UTF_8)
 				}
 			}
 		}
+	}
+
+	def alias(GroupFolder groupFolder) { 
+		groupFolder.commonPrefix.split("\\.").last
 	}
 
 	def newConfigIniTags(ProjectFolder pf) '''
@@ -108,7 +141,7 @@ class FixMaven extends AbstractFix {
 		      <macosx>/«pf.root.name»/config.ini</macosx>
 		      <win32>/«pf.root.name»/config.ini</win32>'''
 		 
-	def newAssemblyCnt(ProjectFolder pf) '''
+	def newClientAssemblyCnt(ProjectFolder pf) '''
 		<assembly>
 		  <id>«pf.root.name».zip</id>
 		  <formats>
@@ -125,6 +158,36 @@ class FixMaven extends AbstractFix {
 		        <exclude>eclipsec.exe</exclude>
 		        <exclude>artifacts.xml</exclude>
 		      </excludes>
+		    </fileSet>
+		  </fileSets>
+		</assembly>
+	'''
+	
+	def newServerAssemblyCnt(ProjectFolder pf) '''
+		<assembly>
+		  <id>«pf.root.name».war</id>
+		  <formats>
+		    <format>war</format>
+		  </formats>
+		  <includeBaseDirectory>false</includeBaseDirectory>
+		  <fileSets>
+		    <!-- web-inf template -->
+		    <fileSet>
+		      <directory>${product.web-inf.templateDirectory}</directory>
+		      <outputDirectory>/WEB-INF</outputDirectory>
+		      <includes>
+		        <include>**</include>
+		      </includes>
+		    </fileSet>
+		 
+		    <!-- exported product files -->
+		    <fileSet>
+		      <directory>${product.outputDirectory}</directory>
+		      <outputDirectory>/WEB-INF/eclipse</outputDirectory>
+		      <includes>
+		        <include>configuration/**</include>
+		        <include>plugins/**</include>
+		      </includes>
 		    </fileSet>
 		  </fileSets>
 		</assembly>
@@ -161,7 +224,7 @@ class FixMaven extends AbstractFix {
 				
 				groupId = groupFolder.commonPrefix
 				artifactId = groupFolder.parentPomName
-				modules = groupFolder.projects.filter[pf | pf != parentProject && pf.mavenNature].map[pf | "../" + pf.root.name].toList
+				modules = groupFolder.projects.filter[pf | pf != parentProject && pf.mavenNature].map[pf | "../" + pf.root.name].sort.toList
 			]
 	}
 

@@ -97,7 +97,7 @@ class MavenProductPom extends MavenPom {
 		    </plugin>
 		    
 		    
-		    <!-- Configure the assembly plugin to build the final server war file -->
+		    <!-- Configure the assembly plugin to build the final file (war or zip) -->
 		    <plugin>
 		      <artifactId>maven-assembly-plugin</artifactId>
 		      <configuration>

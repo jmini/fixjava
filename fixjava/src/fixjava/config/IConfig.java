@@ -43,4 +43,6 @@ public interface IConfig {
 
   String getParentRelativePath();
 
+  String getWebInfTemplateDirectoy();
+
 }

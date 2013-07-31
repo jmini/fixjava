@@ -54,4 +54,6 @@ class ExampleConfig implements IConfig {
 	override getParentArtifactId() { "org.eclipsescout.demo.master" }
 	
 	override getParentRelativePath() {"../../build/org.eclipsescout.demo.master/"}
+	
+	override getWebInfTemplateDirectoy() { "${basedir}/../../build/org.eclipsescout.demo.webapp/WebContent/WEB-INF" }
 }

@@ -4,7 +4,6 @@ import java.io.File
 import java.util.Map
 import com.google.common.io.Files
 import com.google.common.base.Charsets
-import java.util.Map$Entry
 
 class MavenPomWritter {
 	

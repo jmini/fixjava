@@ -35,7 +35,7 @@ class FixMaven extends AbstractFix {
 		groupFolder.createServerUiProductProject("ui.rap")
 		
 		//Create or fix maven parent project:
-		val mavenPF = groupFolder.projects.findFirst[pf | pf.root.name == groupFolder.parentPomName]
+		val mavenPF = groupFolder.projects.findFirst[pf | pf.root.name == groupFolder.parentProjectName]
 		if(mavenPF == null) {
 			groupFolder.createParentProject
 		} else {
@@ -69,13 +69,13 @@ class FixMaven extends AbstractFix {
 		val targetPF = groupFolder.projects.findFirst[pf | pf.root.name.endsWith(projectSuffix)]
 		if(targetPF != null) {
 			val productFolder = new File(new File(targetPF.root, "products"), "production")
-			if(productFolder.exists && productFolder.directory) {
+			val existing = if(productFolder.exists && productFolder.directory) {
 				val productFile= productFolder.listFiles.findFirst[file | file.name.endsWith(".product")]
 				if(productFile != null) {
 					//Create project:
 					val project = new ProjectFolder => [
 						group = groupFolder
-						root = new File(groupFolder.root, targetPF.root.name + ".product")
+						root = new File(groupFolder.root, targetPF.productProjectName)
 						natureCount = 1
 						javaNature = false
 						mavenNature = true
@@ -89,19 +89,7 @@ class FixMaven extends AbstractFix {
 					val existingUid = productFileCnt.readRegEx('<product.*uid="([a-z0-9\\.]+)"')
 					val uid = existingUid ?: project.root.name
 					
-					//Create Pom
-					val mavenPom = project.initMavenProject(new MavenProductPom)
-					mavenPom.properties = new HashMap<String,String>
-					mavenPom.properties.putAll(#{
-						"product.id" -> uid,
-						"product.outputDirectory" -> "${project.build.directory}/products/${product.id}/win32/win32/x86",
-						"product.finalName" -> groupFolder.alias + finalNameSuffix
-					})
-					mavenPom.properties.putAll(additionalProperties)
-
-					project.writePom(mavenPom)
-					
-					//TODO: for the moment there is no check that the config.ini file is called config.ini. It is possible to parse the value of configIni					
+					//TODO: for the moment there is no check that the config.ini file is called config.ini. It is possible to parse the value of configIni
 					
 					//Product File:
 					val newProductFile = new File(project.root, productFile.name)
@@ -122,14 +110,56 @@ class FixMaven extends AbstractFix {
 					val oldConfigIni = new File(productFile.parentFile, "config.ini")
 					val newConfigIni = new File(project.root, "config.ini")
 					Files::move(oldConfigIni, newConfigIni)
-					
-					//Create Assembly file:
-					val newAssemblyFile = new File(project.root, "assembly.xml")
-					val newAssemblyCnt = if(client) { project.newClientAssemblyCnt } else { project.newServerAssemblyCnt }
-					Files::write(newAssemblyCnt, newAssemblyFile, Charsets::UTF_8)
+					new P_productAndUid(project, uid)
+				} else {
+					targetPF.findExistingProjectAndUid
 				}
+			} else {
+				targetPF.findExistingProjectAndUid
 			}
+			val project = existing.project
+			
+			//Create or Update pom.xml
+			val mavenPom = project.initMavenProject(new MavenProductPom)
+			mavenPom.properties = new HashMap<String,String>
+			mavenPom.properties.putAll(#{
+				"product.id" -> existing.uid,
+				"product.outputDirectory" -> "${project.build.directory}/products/${product.id}/win32/win32/x86",
+				"product.finalName" -> groupFolder.alias + finalNameSuffix
+			})
+			mavenPom.properties.putAll(additionalProperties)
+			project.writePom(mavenPom)
+			
+			//Create or update assembly.xml file:
+			val newAssemblyFile = new File(project.root, "assembly.xml")
+			val newAssemblyCnt = if(client) { project.newClientAssemblyCnt } else { project.newServerAssemblyCnt }
+			Files::write(newAssemblyCnt, newAssemblyFile, Charsets::UTF_8)
+			
 		}
+	}
+
+	def findExistingProjectAndUid(ProjectFolder targetPF) {
+		//Try to find the corresponding existing product project
+		val project = targetPF.group.projects.findFirst[pf | pf.root.name == targetPF.productProjectName]
+		if(project == null) {
+			throw new IllegalStateException("Was expecting a project with name ")
+		}
+		
+		val existingProductFile= project.root.listFiles.findFirst[file | file.name.endsWith(".product")]
+		if(existingProductFile == null) {
+			throw new IllegalStateException("Was expecting a .product file in the "+project.root.name+" project")
+		}
+		val productFileCnt = Files::toString(existingProductFile, Charsets::UTF_8)
+		
+		val uid = productFileCnt.readRegEx('<product.*uid="([a-z0-9\\.]+)"')
+		if(uid == null) {
+			throw new IllegalStateException("Was expecting a uid attribute in product tag in the file in the "+existingProductFile.name+" file")
+		}
+		new P_productAndUid(project, uid)
+	}
+
+	def productProjectName(ProjectFolder targetPF) {
+		targetPF.root.name + ".product"
 	}
 
 	def alias(GroupFolder groupFolder) { 
@@ -196,7 +226,7 @@ class FixMaven extends AbstractFix {
 	def createParentProject(GroupFolder groupFolder) {
 			val project = new ProjectFolder => [
 					group = groupFolder
-					root = new File(groupFolder.root, groupFolder.parentPomName)
+					root = new File(groupFolder.root, groupFolder.parentProjectName)
 					natureCount = 1
 					javaNature = false
 					mavenNature = true
@@ -223,7 +253,9 @@ class FixMaven extends AbstractFix {
 				]
 				
 				groupId = groupFolder.commonPrefix
-				artifactId = groupFolder.parentPomName
+				artifactId = groupFolder.parentProjectName
+				name = parentProject.pomName
+				
 				modules = groupFolder.projects.filter[pf | pf != parentProject && pf.mavenNature].map[pf | "../" + pf.root.name].sort.toList
 			]
 	}
@@ -318,19 +350,24 @@ class FixMaven extends AbstractFix {
 			
 			parent = new MavenParent => [
 				groupId = pf.group.commonPrefix
-				artifactId = pf.group.parentPomName
+				artifactId = pf.group.parentProjectName
 				version = "1.0.0-SNAPSHOT" //TODO? define this in config?
-				relativePath = "../" + pf.group.parentPomName + "/"
+				relativePath = "../" + pf.group.parentProjectName + "/"
 			]
 			
 			artifactId = pf.root.name
+			name = pf.pomName
 		]
 	}
 	
-	def parentPomName(GroupFolder gf) {
+	def parentProjectName(GroupFolder gf) {
 		gf.commonPrefix + ".parent"
 	}
-	
+
+	def pomName(ProjectFolder pf) {
+		pf.group.alias + " - " + pf.root.name.replace(pf.group.commonPrefix + ".", "")
+	}
+
 	def computePackaging(ProjectFolder pf) {
 		if(pf.useJUnit) {
 			"eclipse-test-plugin"
@@ -338,47 +375,16 @@ class FixMaven extends AbstractFix {
 			"eclipse-plugin"
 		}
 	}
-	
-	def createMavenParentPom(GroupFolder gf) '''
-<?xml version="1.0" encoding="UTF-8"?>
-<project
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.eclipsescout.demo</groupId>
-		<artifactId>org.eclipsescout.demo.master</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
-		<relativePath>../../build/org.eclipsescout.demo.master/</relativePath>
-	</parent>
-
-	<groupId>«gf.commonPrefix»</groupId>
-	<artifactId>«gf.commonPrefix».parent</artifactId>
-	<packaging>pom</packaging>
-
-	<modules>
-		«FOR pf : gf.projects»
-		<module>../«pf.root.name»</module>
-		«ENDFOR»
-	</modules>
-
-	<profiles>
-		<profile>
-			<id>testing-build</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-			<modules>
-				«FOR pf : gf.projects.filter[useJUnit]»
-				<module>../«pf.root.name»</module>
-				«ENDFOR»
-			</modules>
-		</profile>
-	</profiles>
-</project>
-'''
 	new (IConfig projectConfig) {
 		super(projectConfig)
 	}
+	
+}
+/**
+ * Structure that contains a project and the uid (== product uid attribute)
+ */
+@Data class P_productAndUid {
+	ProjectFolder project
+	String uid
 }

@@ -35,7 +35,7 @@ class FixBSN extends AbstractFix {
 	}
 	
 	override executeFix(ProjectFolder pf) {
-		if(pf.depth == config.BSNExpectedDepth) {
+		if(pf.group.depth == config.BSNExpectedDepth) {
 			val oldBSN = pf.root.name
 			val newBSN = newNamePrefix + oldBSN.substring(oldNamePrefix.length)
 			

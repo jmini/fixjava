@@ -4,7 +4,7 @@ import fixjava.files.ProjectFolder
 import java.io.File
 import java.util.ArrayList
 
-import static extension fixjava.files.XmlExtensions.*
+import static extension xtend.XmlExtensions.*
 import com.google.common.io.Files
 import com.google.common.base.Charsets
 import fixjava.config.IConfig
@@ -14,7 +14,7 @@ class FixLinkedResources extends AbstractFix {
 	override executeFix(ProjectFolder pf) {
 		if(pf.javaNature) {
 			//List of settings files:
-			val fileNames = config.getLinkedResourcesFiles(pf)
+			val fileNames = config.linkedResourcesFiles.filter[pf.mavenNature || it != "org.eclipse.m2e.core.prefs" ]
 			
 			//Delete files in settings:
 			val settingsFolder = new File(pf.root, ".settings")

@@ -11,7 +11,7 @@
 package fixjava.config;
 
 import java.io.File;
-import java.util.List;
+import java.util.Collection;
 
 import fixjava.files.GroupFolder;
 import fixjava.files.ProjectFolder;
@@ -25,12 +25,24 @@ public interface IConfig {
 
   int getInitialDepth();
 
-  List<String> getLinkedResourcesFiles(ProjectFolder project);
+  Collection<String> getLinkedResourcesFiles();
 
   String getLinkedResourcesLinkLocationURI(String fileName, ProjectFolder project);
 
   int getBSNExpectedDepth();
 
   String getBSNNewNamePrefix(GroupFolder group);
+
+  String getCopyright();
+
+  File getAboutFile();
+
+  String getParentGroupId();
+
+  String getParentArtifactId();
+
+  String getParentRelativePath();
+
+  String getWebInfTemplateDirectoy();
 
 }

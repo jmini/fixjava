@@ -42,7 +42,7 @@ class EclipseProjectWritter {
 		</natures>
 		«IF !p.linkedResources.nullOrEmpty»
 		<linkedResources>
-			«FOR link : p.linkedResources»
+			«FOR link : p.linkedResources.sortBy[name]»
 			<link>
 				<name>«link.name»</name>
 				<type>«link.type»</type>

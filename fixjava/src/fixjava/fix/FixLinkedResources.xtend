@@ -1,13 +1,12 @@
 package fixjava.fix
 
-import fixjava.files.ProjectFolder
-import java.io.File
-import java.util.ArrayList
-
-import static extension xtend.XmlExtensions.*
-import com.google.common.io.Files
-import com.google.common.base.Charsets
 import fixjava.config.IConfig
+import fixjava.files.ProjectFolder
+import fixjava.project.Link
+import java.io.File
+
+import static extension fixjava.project.EclipseProjectReader.*
+import static extension fixjava.project.EclipseProjectWritter.*
 
 class FixLinkedResources extends AbstractFix {
 	
@@ -24,51 +23,15 @@ class FixLinkedResources extends AbstractFix {
 			
 			//Fix Project File:
 			val projectFile = new File(pf.root, ".project")
-			val content = Files::readLines(projectFile, Charsets::UTF_8).map[it.trim].join
-			val doc = content.toDocument;
+			val project = projectFile.readEclipseProject
 			
-			val malformedLink = new ArrayList<String>
-			val existingLink = new ArrayList<String>
+			//TODO: there is no consideration for existing linkedResources (they are overwritten)
+			project.linkedResources = fileNames.map[fileName |
+				new Link(fileName.computeLinkName, "1", fileName.computeLinkLocationURI(pf))
+			].toList
 			
-			val links = doc.selectByXPathQuery("/projectDescription/linkedResources/link");
-			links.forEach[
-				val fileName = it.childNode("name").textContent.computeFileName
-				if(it.childNode("type").textContent != "1" ||
-					it.childNode("locationURI").textContent != fileName.computeLinkLocationURI(pf)) {
-						malformedLink.add = fileName
-				} else {
-					existingLink.add = fileName
-				}
-			]
-			
-			val projectDescription = doc.childNode("projectDescription")
-			val linkedResources = projectDescription.getOrCreateChildNode("linkedResources", doc)
-			//TODO: remove malformedLink.
-			
-			fileNames.filter[!existingLink.contains(it)].forEach[
-				val fileName = it
-				val link = linkedResources.appendChild(doc.createElement("link"))
-				
-				link.appendChild(doc.createElement("name") => [setTextContent = fileName.computeLinkName])
-				link.appendChild(doc.createElement("type") => [setTextContent = "1"])
-				link.appendChild(doc.createElement("locationURI") => [setTextContent = fileName.computeLinkLocationURI(pf)])
-			]
-			
-			var cnt = doc.toXml
-			cnt = cnt.replaceAll('<\\?xml version="1\\.0" encoding="UTF-8"\\?><projectDescription>', '<?xml version="1.0" encoding="UTF-8"?>\n<projectDescription>')
-			cnt = cnt.replaceAll("<comment/>", "<comment></comment>")
-			cnt = cnt.replaceAll("(\\s+)<projects/>", "$1<projects>$1</projects>")
-			cnt = cnt.replaceAll("(\\s+)<arguments/>", "$1<arguments>$1</arguments>")
-			cnt = cnt.replaceAll("    ", "\t")
-			
-//			println(cnt)
-//			println(projectFile.absolutePath)
-			Files::write(cnt, projectFile, Charsets::UTF_8)
+			project.toFile(projectFile)
 		}
-	}
-	
-	def computeFileName(String linkName) {
-		return linkName.replace(".settings/", "")
 	}
 	
 	def computeLinkName(String fileName) {

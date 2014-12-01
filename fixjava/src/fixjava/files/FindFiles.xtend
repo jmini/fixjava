@@ -52,7 +52,7 @@ class FindFiles {
 		
 		//Look in child folders:
 		folder
-			.listFiles[File f| return f.isDirectory]
+			.listFiles[File f| return f.isDirectory && !f.name.startsWith(".")]
 			.forEach[list.addAll (findProjectsRec(depth+1))]
 		
 		return list;

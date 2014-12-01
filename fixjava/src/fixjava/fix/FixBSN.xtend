@@ -55,14 +55,16 @@ class FixBSN extends AbstractFix {
 						val newRootSrcPackage = newRoot.createRootSrcPackage(newBSN)
 						oldRootSrcPackage.moveTo(newRootSrcPackage)
 					}
-					
-					val files = newRoot.findFiles
-					files.forEach[
-						val content = com::google::common::io::Files::toString(it, Charsets::UTF_8).replaceAll(oldNamePrefix, newNamePrefix)
-						com::google::common::io::Files::write(content, it, Charsets::UTF_8)
-					]
 				}
+				
+				val files = newRoot.findFiles
+				files.forEach[
+					val content = com::google::common::io::Files::toString(it, Charsets::UTF_8).replaceAll(oldNamePrefix, newNamePrefix)
+					com::google::common::io::Files::write(content, it, Charsets::UTF_8)
+				]
 			}
+		} else {
+			System.err.println("ERROR: pf.group.depth ("+ pf.group.depth +") not not match configured BSNExpectedDepth ("+ config.BSNExpectedDepth +")")
 		}
 	}
 	

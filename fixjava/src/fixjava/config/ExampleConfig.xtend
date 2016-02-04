@@ -3,6 +3,7 @@ package fixjava.config
 import fixjava.files.ProjectFolder
 import java.io.File
 import fixjava.files.GroupFolder
+import java.util.Collections
 
 /**
  * This is an example configuration to work on the scout example
@@ -31,8 +32,9 @@ class ExampleConfig implements IConfig {
 	
 	override getBSNExpectedDepth() { 2 }
 	
-	override getBSNNewNamePrefix(GroupFolder gf) 
-		'''org.eclipsescout.demo.«gf.root.name»'''
+	override getBSNNewNamePrefix(GroupFolder gf) { '''org.eclipsescout.demo.«gf.root.name»''' }
+	
+	override getSrcPath() { #["src/"] }
 	
 	override getCopyright() '''
 		Copyright (c) 2013 BSI Business Systems Integration AG.
@@ -56,4 +58,7 @@ class ExampleConfig implements IConfig {
 	override getParentRelativePath() {"../../build/org.eclipsescout.demo.master/"}
 	
 	override getWebInfTemplateDirectoy() { "${basedir}/../../build/org.eclipsescout.demo.webapp/WebContent/WEB-INF" }
+	
+	override getRenameProjects() { Collections.emptyMap }
+	
 }

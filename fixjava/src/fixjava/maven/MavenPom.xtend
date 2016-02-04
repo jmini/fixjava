@@ -1,30 +1,35 @@
 package fixjava.maven
 
-import java.util.Map
 import java.util.List
+import java.util.Map
+import org.eclipse.xtend.lib.annotations.Accessors
+import org.eclipse.xtend.lib.annotations.ToString
 
+@ToString
 class MavenPom {
-	@Property String copyright
-	@Property MavenParent parent
-	@Property String groupId
-	@Property String artifactId
-	@Property String packaging
-	@Property String name
-	@Property Map<String,String> properties
+	@Accessors String copyright
+	@Accessors MavenParent parent
+	@Accessors String groupId
+	@Accessors String artifactId
+	@Accessors String packaging
+	@Accessors String name
+	@Accessors Map<String,String> properties
 	
 	def pomBody() ''''''
 }
 
+@ToString
 class MavenParent {
-	@Property String groupId
-	@Property String artifactId
-	@Property String version
-	@Property String relativePath
+	@Accessors String groupId
+	@Accessors String artifactId
+	@Accessors String version
+	@Accessors String relativePath
 }
 
+@ToString
 class MavenParentPom extends MavenPom {
 
-	@Property List<String> modules
+	@Accessors List<String> modules
 
 	new() {
 		packaging = "pom"

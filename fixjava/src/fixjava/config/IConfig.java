@@ -12,6 +12,8 @@ package fixjava.config;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import fixjava.files.GroupFolder;
 import fixjava.files.ProjectFolder;
@@ -33,6 +35,13 @@ public interface IConfig {
 
   String getBSNNewNamePrefix(GroupFolder group);
 
+  /**
+   * Location of the source folders relative to the project.
+   * Default Eclipse source folder: singelton list ["src/"]
+   * Default Maven source folder: ["src/main/java/", "src/main/resources"]
+   */
+  List<String> getSrcPath();
+
   String getCopyright();
 
   File getAboutFile();
@@ -45,4 +54,5 @@ public interface IConfig {
 
   String getWebInfTemplateDirectoy();
 
+  Map<String, String> getRenameProjects();
 }

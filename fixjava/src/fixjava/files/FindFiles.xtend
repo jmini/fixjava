@@ -9,6 +9,8 @@ import java.util.LinkedHashSet
 import com.google.common.collect.Lists
 import com.google.common.io.Files
 import com.google.common.base.Charsets
+import org.eclipse.xtend.lib.annotations.Accessors
+import org.eclipse.xtend.lib.annotations.ToString
 
 class FindFiles {
 	def List<GroupFolder> findProjects(File folder, int depth) {
@@ -52,7 +54,7 @@ class FindFiles {
 		
 		//Look in child folders:
 		folder
-			.listFiles[File f| return f.isDirectory && !f.name.startsWith(".")]
+			.listFiles[File f| return f.isDirectory && !f.name.startsWith(".") && f.name != "bin" && f.name != "target"]
 			.forEach[list.addAll (findProjectsRec(depth+1))]
 		
 		return list;
@@ -115,7 +117,8 @@ class FindFiles {
 	}
 }
 
+@ToString
 class P_ProjectFolder {
-	@Property ProjectFolder pf
-	@Property int depth
+	@Accessors ProjectFolder pf
+	@Accessors int depth
 }
